@@ -30,66 +30,31 @@ Managing premium short-term rental properties (Airbnb, Booking.com, direct booki
 
 ---
 
-## 🏛️ System Architecture
+## 💬 Live WhatsApp Automation & Concierge Experience
 
-```mermaid
-flowchart TD
-    subgraph WhatsApp["Meta Cloud Platform"]
-        GuestMsg["Guest / Host WhatsApp Message"]
-        MetaHook["Meta Graph Webhook (:5678)"]
-    end
+<div align="center">
 
-    subgraph Router["Master Ingestion & Intent Classification"]
-        SetContext["Context Normalizer & Phone Sanitizer"]
-        AiRouter["AiRouteur1 (LangChain GPT-4o)"]
-        DialectRules["Darija / French Intent Resolver"]
-    end
+| Guest Interaction (WhatsApp) | PMS & Backend Execution (n8n + Hospitable) |
+|:-----------------------------|:-------------------------------------------|
+| **Traveler**: *"Salam Kho rani 7ab nekri partma lghedoua f Hydra pour 3 nuits"* | ⚡ `AiRouteur1` detects `voyageur_potentiel` via temporal marker `lghedoua`. Queries Hospitable calendar for Hydra listings. |
+| **Bot**: *"Wa alaykoum salam ! 'Le Panoramique Hydra' est disponible. 💵 24,000 DZD (3 nuits). Voici les photos 👇"* | 📸 `WaImageVoyageur` pulls and dispatches CDN property photo album directly into WhatsApp thread. |
+| **Traveler (01:30 AM)**: *"Salam lha9t l'immeuble habit na3ref code boîte à clés stp"* | 🌙 **Midnight Traveler Engine** triggers: verifies confirmed booking, retrieves lockbox code & Wi-Fi password. |
+| **Bot**: *"Bienvenue à Alger ! 🔑 Porte: 1489A / 📦 Boîte à clés: 7291 / 📶 Wifi: Residence_5G"* | 🔒 Redis locks session state and sends instant WhatsApp confirmation to agency on-call staff. |
 
-    subgraph Agents["Autonomous AI Subagents"]
-        GuestAgent["BookingAgentVoyageur"]
-        HostAgent["BookingAgentProprietaire"]
-        SupportAgent["AgentSupportClient"]
-        MidnightAgent["Midnight Arrival Engine"]
-    end
+</div>
 
-    subgraph Data_Services["PMS, Vector Store & Caches"]
-        Hospitable[("Hospitable.com API (PMS)")]
-        Qdrant[("Qdrant Vector DB (Apartment FAQs)")]
-        Redis[("Redis (Reservation Locks & Memory)")]
-        HubSpot[("HubSpot CRM & Google Sheets")]
-    end
+---
 
-    subgraph Output["Automated Multi-Channel Execution"]
-        WaSend["WhatsApp Cloud API (Media & Text)"]
-        AdminAlert["Agency Admin WhatsApp Alert"]
-        Gamma["Gamma AI (Owner Pitch Decks)"]
-    end
+## 🏛️ System Architecture & Subsystems
 
-    GuestMsg --> MetaHook
-    MetaHook --> SetContext --> AiRouter
-    AiRouter --> DialectRules
-
-    DialectRules -->|voyageur_potentiel| GuestAgent
-    DialectRules -->|proprietaire_potentiel| HostAgent
-    DialectRules -->|support_client| SupportAgent
-    DialectRules -->|midnight_arrival| MidnightAgent
-
-    GuestAgent <--> Hospitable
-    GuestAgent <--> Qdrant
-    GuestAgent <--> Redis
-
-    HostAgent --> Gamma
-    HostAgent --> HubSpot
-    HostAgent --> AdminAlert
-
-    SupportAgent <--> Qdrant
-
-    MidnightAgent <--> Hospitable
-    MidnightAgent --> WaSend
-
-    GuestAgent --> WaSend
-    SupportAgent --> WaSend
-```
+| Subsystem | Components | Function & Output |
+|:----------|:-----------|:------------------|
+| **Master Orchestrator** | `wsp_main.workflow.ts` (154 nodes) | Meta Graph Webhook verification, phone sanitizer, LangChain OpenAI GPT-4o agent execution, and photo delivery. |
+| **PMS Synchronization** | `wsp_hospitable` & `wsp_dispo` | Real-time calendar availability lookup, multi-listing quotes in DZD/EUR, and proactive T+6h/T+12h payment reminders. |
+| **Midnight Concierge** | `wsp_voyageur_minuit` | Scheduled property status audit and automated late-night check-in delivery (keys, Wi-Fi, directions). |
+| **Payment Verification** | `wsp_verifier_paiement` | Validates customer payment receipts, updates booking status, and clears admin verification gates. |
+| **RAG Knowledge Base** | `wsp_recherche_catalogue` + Qdrant | Vector similarity search answering guest questions on building amenities, parking, and house rules. |
+| **CRM & Business Sync** | `wsp_crm_export` + HubSpot | Automatically logs guest contact records, booking values, and host onboarding leads to HubSpot & Google Sheets. |
 
 ---
 
